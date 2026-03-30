@@ -97,7 +97,7 @@ export default class ManualRollsLegacy {
 		// if there are no modifiers, display a "total" roll request
 		if (this.modifiers.length == 0) {
 			const total = ManualRollsLegacy.prompt(this.number, this.faces, this.flavor);
-			const results = RollPrompt.distributeRoll(total[0], this.number);
+			const results = RollPrompt.distributeRoll(total[0], this.number, this.faces);
 			this.results = results.map(x => { return { result: x, active: true }; });
 			if (ManualRolls.flagged && total[1]) {
 				this.options.flavor = (this.options.flavor || '') + '[MRT]';
