@@ -25,7 +25,7 @@ export default class RollPrompt extends FormApplication<FormApplicationOptions, 
 	static get focusInput(): boolean { return SETTINGS.get(RollPrompt.PREF_FOCUS_INPUT); }
 
 	static get defaultOptions(): FormApplicationOptions {
-		return <FormApplicationOptions>mergeObject(
+		return <FormApplicationOptions>foundry.utils.mergeObject(
 			<DeepPartial<FormApplicationOptions>>FormApplication.defaultOptions,
 			{
 				title: game.i18n.localize("DF_MANUAL_ROLLS.Prompt.DefaultTitle"),
@@ -81,7 +81,7 @@ export default class RollPrompt extends FormApplication<FormApplicationOptions, 
 			// If a total input was defined and given, it overrides everything else.
 			if (total !== undefined && total !== null) {
 				const value = parseInt(total);
-				results.push(...RollPrompt.distributeRoll(value, x.term.number));
+				results.push(...RollPrompt.distributeRoll(value, x.term.number, x.term.faces));
 				if (ManualRolls.flagged)
 					x.term.options.flavor = (x.term.options.flavor || '') + '[MRT]';
 			} else {
@@ -113,17 +113,36 @@ export default class RollPrompt extends FormApplication<FormApplicationOptions, 
 		return new Promise((res, _) => this._terms.push({ id: this._nextId++, res, term }));
 	}
 
-	static distributeRoll(total: number, count: number): number[] {
-		const results: number[] = [];
-		// If a total input was defined and given, it overrides everything else.
-		let base = 0;
-		// Append dice with the base average of the total.
-		for (let c = 0; c < count - 1; c++) {
-			base = Math.ceil(total / (count - results.length));
-			total -= base;
-			results.push(base);
+	static distributeRoll(total: number, count: number, faces: number): number[] {
+		const results: number[] = new Array(count).fill(1);
+		let remaining = total - count;
+
+		// Fisher-Yates shuffle of indices for random distribution
+		const indices = Array.from({ length: count }, (_, i) => i);
+		for (let i = count - 1; i > 0; i--) {
+			const j = Math.floor(CONFIG.Dice.randomUniform() * (i + 1));
+			[indices[i], indices[j]] = [indices[j], indices[i]];
 		}
-		results.push(total);
+
+		// First pass: randomly allocate points to each die
+		for (const idx of indices) {
+			if (remaining <= 0) break;
+			const capacity = faces - results[idx];
+			const maxAdd = Math.min(remaining, capacity);
+			const amount = Math.floor(CONFIG.Dice.randomUniform() * (maxAdd + 1));
+			results[idx] += amount;
+			remaining -= amount;
+		}
+
+		// Second pass: fill any remaining points that weren't allocated randomly
+		for (const idx of indices) {
+			if (remaining <= 0) break;
+			const capacity = faces - results[idx];
+			const amount = Math.min(remaining, capacity);
+			results[idx] += amount;
+			remaining -= amount;
+		}
+
 		return results;
 	}
 }

@@ -113,7 +113,7 @@ Hooks.on('createChatMessage', async (chatMessage: ChatMessage) => {
 	// If all of the manual rolls were cancelled, don't set the flag
 	if (!chatMessage.roll.terms.some((value: any) => value instanceof DiceTerm && (<any>value.options).isManualRoll))
 		return;
-	if (chatMessage.data.flavor)
-		flavor += " " + chatMessage.data.flavor;
+	if (chatMessage.flavor)
+		flavor += " " + chatMessage.flavor;
 	await chatMessage.update({ flavor: flavor });
 });
